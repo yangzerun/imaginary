@@ -26,6 +26,7 @@ type ServerOptions struct {
 	Gzip               bool // deprecated
 	AuthForwarding     bool
 	EnableURLSource    bool
+	EnableAWSS3Source  bool
 	EnablePlaceholder  bool
 	EnableURLSignature bool
 	URLSignatureKey    string
@@ -33,6 +34,7 @@ type ServerOptions struct {
 	PathPrefix         string
 	APIKey             string
 	Mount              string
+	AWSConfigPath      string
 	CertFile           string
 	KeyFile            string
 	Authorization      string
@@ -133,6 +135,7 @@ func NewServerMux(o ServerOptions) http.Handler {
 	mux.Handle(join(o, "/info"), image(Info))
 	mux.Handle(join(o, "/blur"), image(GaussianBlur))
 	mux.Handle(join(o, "/pipeline"), image(Pipeline))
+	mux.Handle(join(o, "/v2pipeline"), image(Pipeline))
 
 	return mux
 }

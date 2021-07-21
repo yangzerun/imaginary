@@ -28,6 +28,7 @@ var (
 	aGzip               = flag.Bool("gzip", false, "Enable gzip compression (deprecated)")
 	aAuthForwarding     = flag.Bool("enable-auth-forwarding", false, "Forwards X-Forward-Authorization or Authorization header to the image source server. -enable-url-source flag must be defined. Tip: secure your server from public access to prevent attack vectors")
 	aEnableURLSource    = flag.Bool("enable-url-source", false, "Enable remote HTTP URL image source processing")
+	aEnableAWSS3Source  = flag.Bool("enable-awss3-source", false, "Enable AWS S3 image source processing")
 	aEnablePlaceholder  = flag.Bool("enable-placeholder", false, "Enable image response placeholder to be used in case of error")
 	aEnableURLSignature = flag.Bool("enable-url-signature", false, "Enable URL signature (URL-safe Base64-encoded HMAC digest)")
 	aURLSignatureKey    = flag.String("url-signature-key", "", "The URL signature key (32 characters minimum)")
@@ -35,6 +36,7 @@ var (
 	aMaxAllowedSize     = flag.Int("max-allowed-size", 0, "Restrict maximum size of http image source (in bytes)")
 	aKey                = flag.String("key", "", "Define API key for authorization")
 	aMount              = flag.String("mount", "", "Mount server local directory")
+	aAWSConfigPath      = flag.String("aws-config", "./aws.toml", "AWS config file path")
 	aCertFile           = flag.String("certfile", "", "TLS certificate file path")
 	aKeyFile            = flag.String("keyfile", "", "TLS private key file path")
 	aAuthorization      = flag.String("authorization", "", "Defines a constant Authorization header value passed to all the image source servers. -enable-url-source flag must be defined. This overwrites authorization headers forwarding behavior via X-Forward-Authorization")
@@ -64,6 +66,7 @@ Usage:
   imaginary -enable-url-source -allowed-origins http://localhost,http://server.com
   imaginary -enable-url-source -enable-auth-forwarding
   imaginary -enable-url-source -authorization "Basic AwDJdL2DbwrD=="
+  imaginary -enable-awss3-source -aws-config ./aws.toml
   imaginary -enable-placeholder
   imaginary -enable-url-source -placeholder ./placeholder.jpg
   imaginary -enable-url-signature -url-signature-key 4f46feebafc4b5e988f131c4ff8b5997
@@ -83,10 +86,12 @@ Options:
   -disable-endpoints         Comma separated endpoints to disable. E.g: form,crop,rotate,health [default: ""]
   -key <key>                 Define API key for authorization
   -mount <path>              Mount server local directory
+  -aws-config <path>         AWS config file path
   -http-cache-ttl <num>      The TTL in seconds. Adds caching headers to locally served files.
   -http-read-timeout <num>   HTTP read timeout in seconds [default: 30]
   -http-write-timeout <num>  HTTP write timeout in seconds [default: 30]
   -enable-url-source         Enable remote HTTP URL image source processing
+  -enable-awss3-source       Enable AWS S3 image source processing
   -enable-placeholder        Enable image response placeholder to be used in case of error [default: false]
   -enable-auth-forwarding    Forwards X-Forward-Authorization or Authorization header to the image source server. -enable-url-source flag must be defined. Tip: secure your server from public access to prevent attack vectors
   -forward-headers           Forwards custom headers to the image source server. -enable-url-source flag must be defined.
@@ -137,6 +142,7 @@ func main() {
 		CORS:               *aCors,
 		AuthForwarding:     *aAuthForwarding,
 		EnableURLSource:    *aEnableURLSource,
+		EnableAWSS3Source:  *aEnableAWSS3Source,
 		EnablePlaceholder:  *aEnablePlaceholder,
 		EnableURLSignature: *aEnableURLSignature,
 		URLSignatureKey:    urlSignature.Key,
@@ -145,6 +151,7 @@ func main() {
 		Concurrency:        *aConcurrency,
 		Burst:              *aBurst,
 		Mount:              *aMount,
+		AWSConfigPath:      *aAWSConfigPath,
 		CertFile:           *aCertFile,
 		KeyFile:            *aKeyFile,
 		Placeholder:        *aPlaceholder,
@@ -172,6 +179,11 @@ func main() {
 	// Check if the mount directory exists, if present
 	if *aMount != "" {
 		checkMountDirectory(*aMount)
+	}
+
+	// Check if the aws config exists, if present
+	if *aEnableAWSS3Source && *aAWSConfigPath != "" {
+		checkAwsConfig(*aAWSConfigPath)
 	}
 
 	// Validate HTTP cache param, if present
@@ -267,6 +279,16 @@ func checkMountDirectory(path string) {
 	}
 	if path == "/" {
 		exitWithError("cannot mount root directory for security reasons")
+	}
+}
+
+func checkAwsConfig(path string) {
+	src, err := os.Stat(path)
+	if err != nil {
+		exitWithError("error while read aws config: %s", err)
+	}
+	if src.IsDir() {
+		exitWithError("aws config is a director: %s", path)
 	}
 }
 

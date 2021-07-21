@@ -1,0 +1,9 @@
+[s3]
+    [[s3.buckets]]
+    appId=""
+    appKey=""
+    appToken=""
+    region="us-east-1"
+    name=""
+    dist=""
+    prefix=""

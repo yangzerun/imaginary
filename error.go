@@ -20,6 +20,7 @@ var (
 	ErrMissingParamFile     = NewError("Missing required param: file", http.StatusBadRequest)
 	ErrInvalidFilePath      = NewError("Invalid file path", http.StatusBadRequest)
 	ErrInvalidImageURL      = NewError("Unvalid image URL", http.StatusBadRequest)
+	ErrMissingParamS3       = NewError("Missing required param: s3", http.StatusBadRequest)
 	ErrMissingImageSource   = NewError("Cannot process the image due to missing or invalid params", http.StatusBadRequest)
 	ErrNotImplemented       = NewError("Not implemented endpoint", http.StatusNotImplemented)
 	ErrInvalidURLSignature  = NewError("Invalid URL signature", http.StatusBadRequest)

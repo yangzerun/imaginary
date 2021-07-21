@@ -12,6 +12,7 @@ type SourceConfig struct {
 	AuthForwarding bool
 	Authorization  string
 	MountPath      string
+	AWSConfigPath  string
 	Type           ImageSourceType
 	ForwardHeaders []string
 	AllowedOrigins []*url.URL
@@ -35,6 +36,7 @@ func LoadSources(o ServerOptions) {
 		imageSourceMap[name] = factory(&SourceConfig{
 			Type:           name,
 			MountPath:      o.Mount,
+			AWSConfigPath:  o.AWSConfigPath,
 			AuthForwarding: o.AuthForwarding,
 			Authorization:  o.Authorization,
 			AllowedOrigins: o.AllowedOrigins,
