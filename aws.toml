@@ -1,5 +1,6 @@
 [s3]
     [[s3.buckets]]
+    endPoint=""
     appId=""
     appKey=""
     appToken=""

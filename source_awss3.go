@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -26,6 +27,7 @@ type AWSS3Bucket struct {
 	Dist   string
 	Prefix string
 
+	EndPoint string
 	AppId    string
 	AppKey   string
 	AppToken string
@@ -46,7 +48,7 @@ type AWSS3ImageSource struct {
 func NewAWSS3ImageSource(config *SourceConfig) ImageSource {
 	var awsConfig AWSConfig
 	if _, err := toml.DecodeFile(config.AWSConfigPath, &awsConfig); err != nil {
-		exitWithError("Decode %s error: %s", config.AWSConfigPath, err)
+		log.Printf("Decode %s error: %s", config.AWSConfigPath, err)
 	}
 	return &AWSS3ImageSource{config, &awsConfig}
 }
@@ -75,34 +77,45 @@ func (s *AWSS3ImageSource) fetchImage(r *http.Request) ([]byte, error) {
 
 	if bConf.EnableLocal {
 		localPath := strings.TrimRight(bConf.LocalDir, "/") + "/" + strings.TrimLeft(key, "/")
-		f, e := os.OpenFile(localPath, os.O_RDONLY, os.ModePerm)
-		if e == nil && f != nil {
-			defer f.Close()
-			var buf []byte
-			if n, e := f.Read(buf); e == nil && n > 0 {
-				log.Println("hint local")
-				return buf, nil
-			}
+		f, err := os.OpenFile(localPath, os.O_RDONLY, os.ModePerm)
+		if err != nil || f == nil {
+			return nil, fmt.Errorf("error open local image: (path=%s) (err=%v)", localPath, err)
 		}
+
+		defer f.Close()
+		var buf []byte
+		if n, err := f.Read(buf); err != nil || n <= 0 {
+			return nil, fmt.Errorf("error read local image: (path=%s) (len=%v) (err=%v)", localPath, n, err)
+		}
+		return buf, nil
 	}
 
 	downloader := s.newAWSS3Downloader(bConf)
 	buf := &aws.WriteAtBuffer{}
+
+	key = strings.TrimPrefix(key, "/")
+	if bConf.Prefix != "" {
+		key = strings.Trim(bConf.Prefix, "/") + "/" + key
+	}
+
 	_, err := downloader.Download(buf, &s3.GetObjectInput{
 		Bucket: aws.String(bConf.Dist),
-		Key:    aws.String(strings.Trim(bConf.Prefix, "/") + "/" + strings.TrimPrefix(key, "/")),
+		Key:    aws.String(key),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error download aws image: (cfg=%v) (key=%s) (err=%v)", bConf, key, err)
 	}
-	log.Println("hint s3")
+
 	return buf.Bytes(), nil
 }
 
 func (s *AWSS3ImageSource) newAWSS3Downloader(bConf *AWSS3Bucket) *s3manager.Downloader {
 	sess := session.Must(session.NewSession(&aws.Config{
+		Endpoint:    aws.String(bConf.EndPoint),
 		Region:      aws.String(bConf.Region),
 		MaxRetries:  aws.Int(2),
+		DisableSSL:  aws.Bool(true),
+		S3ForcePathStyle: aws.Bool(true),
 		Credentials: credentials.NewStaticCredentials(bConf.AppId, bConf.AppKey, bConf.AppToken),
 	}))
 	return s3manager.NewDownloader(sess)

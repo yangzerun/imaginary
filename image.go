@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"io/ioutil"
 	"math"
 	"net/http"
+	"strings"
 
 	"github.com/h2non/bimg"
 )
@@ -261,6 +261,14 @@ func Flop(buf []byte, o ImageOptions) (Image, error) {
 }
 
 func Thumbnail(buf []byte, o ImageOptions) (Image, error) {
+	if o.IsDefinedField.OriginSize {
+		origin, err := bimg.Size(buf)
+		if err != nil {
+			return Image{}, NewError( fmt.Sprintf("Get origin size error: %v", err), http.StatusBadRequest)
+		}
+		o.Width = origin.Width
+		o.Height = origin.Height
+	}
 	if o.Width == 0 && o.Height == 0 {
 		return Image{}, NewError("Missing required params: width or height", http.StatusBadRequest)
 	}

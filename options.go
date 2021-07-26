@@ -44,6 +44,7 @@ type ImageOptions struct {
 	Color         []uint8
 	Background    []uint8
 	Interlace     bool
+	OriginSize    bool
 	Extend        bimg.Extend
 	Gravity       bimg.Gravity
 	Colorspace    bimg.Interpretation
@@ -63,6 +64,7 @@ type IsDefinedField struct {
 	NoProfile     bool
 	StripMetadata bool
 	Interlace     bool
+	OriginSize    bool
 }
 
 // PipelineOperation represents the structure for an operation field.

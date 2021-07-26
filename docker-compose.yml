@@ -4,12 +4,10 @@ services:
   imaginary:
     image: h2non/imaginary
     volumes:
-      - /var/www/http/image_server:/mnt/data
-      - /usr/local/etc/imaginary/aws.toml:/etc/imaginary/aws.toml
+      - /var/local/aws.toml:/etc/imaginary/aws.toml
     ports:
       - "8088:8088"
     environment:
       - VIPS_CONCURRENCY=50
-      - PORT=8088
-    command: -enable-url-source -mount /mnt/data -concurrency 50 -enable-awss3-source -aws-config /etc/imaginary/aws.toml
+    command: -enable-url-source -concurrency 50 -enable-awss3-source -aws-config /etc/imaginary/aws.toml
 

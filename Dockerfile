@@ -3,7 +3,7 @@ FROM golang:${GOLANG_VERSION} as builder
 
 ARG IMAGINARY_VERSION=dev
 ARG LIBVIPS_VERSION=8.10.0
-ARG GOLANGCILINT_VERSION=1.29.0
+ARG GOLANGCILINT_VERSION=1.41.1
 
 # Installs libvips + required libraries
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -34,7 +34,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 # Installing golangci-lint
 WORKDIR /tmp
-RUN curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "${GOPATH}/bin" v${GOLANGCILINT_VERSION}
+#RUN curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "${GOPATH}/bin" v${GOLANGCILINT_VERSION}
 
 WORKDIR ${GOPATH}/src/github.com/h2non/imaginary
 
@@ -44,14 +44,15 @@ ENV GO111MODULE=on
 COPY go.mod .
 COPY go.sum .
 
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 # Copy imaginary sources
 COPY . .
 
 # Run quality control
-RUN go test -test.v -test.race -test.covermode=atomic .
-RUN golangci-lint run .
+#RUN go test -test.v -test.race -test.covermode=atomic .
+#RUN golangci-lint run .
 
 # Compile imaginary
 RUN go build -a \
@@ -87,14 +88,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Server port to listen
-ENV PORT 9000
-
 # Drop privileges for non-UID mapped environments
 USER nobody
 
 # Run the entrypoint command by default when the container starts.
 ENTRYPOINT ["/usr/local/bin/imaginary"]
-
-# Expose the server TCP port
-EXPOSE ${PORT}
