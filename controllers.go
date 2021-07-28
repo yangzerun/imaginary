@@ -130,9 +130,21 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 		return
 	}
 
+	size, err := bimg.Size(image.Body)
+	if err != nil {
+		// Ensure the Vary header is set when an error occurs
+		if vary != "" {
+			w.Header().Set("Vary", vary)
+		}
+		ErrorReply(r, w, NewError("Error while get image size: "+err.Error(), http.StatusBadRequest), o)
+		return
+	}
+
 	// Expose Content-Length response header
 	w.Header().Set("Content-Length", strconv.Itoa(len(image.Body)))
 	w.Header().Set("Content-Type", image.Mime)
+	w.Header().Set("Width", strconv.Itoa(size.Width))
+	w.Header().Set("Height", strconv.Itoa(size.Height))
 	if vary != "" {
 		w.Header().Set("Vary", vary)
 	}
