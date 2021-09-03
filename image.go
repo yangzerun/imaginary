@@ -261,14 +261,22 @@ func Flop(buf []byte, o ImageOptions) (Image, error) {
 }
 
 func Thumbnail(buf []byte, o ImageOptions) (Image, error) {
-	if o.IsDefinedField.OriginSize {
-		origin, err := bimg.Size(buf)
-		if err != nil {
-			return Image{}, NewError( fmt.Sprintf("Get origin size error: %v", err), http.StatusBadRequest)
-		}
-		o.Width = origin.Width
-		o.Height = origin.Height
+	metadata, err := bimg.Metadata(buf)
+	if err != nil {
+		return Image{}, err
 	}
+
+	if o.OriginSize {
+		dims := metadata.Size
+		if o.NoRotation || (metadata.Orientation <= 4) {
+			o.Width = dims.Width
+			o.Height = dims.Height
+		} else {
+			o.Width = dims.Height
+			o.Height = dims.Width
+		}
+	}
+
 	if o.Width == 0 && o.Height == 0 {
 		return Image{}, NewError("Missing required params: width or height", http.StatusBadRequest)
 	}
